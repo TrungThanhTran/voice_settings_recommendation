@@ -6,6 +6,7 @@ from utils import write_audio_file, generate_speech_11lab
 from recommendation import *
 
 ELEVEN_LAB_URL = "https://api.elevenlabs.io/v1/text-to-speech/"
+LEVEL_RULE = 2
 
 # importing required modules
 def read_text_file(file_path):
@@ -83,11 +84,12 @@ def select_settings_by_rulebase(level_rule, data):
         rem_voice = {}
         suggetor = SemanticCompare()
         voice_ids = suggetor.get_all_voices_embedding()
-        book_info = [data[k] for k in data.keys() if k != 'file_path' and k != 'title']
+
+        book_info = [data[k] for k in data.keys()]
         ids, list_voices = suggetor.compare(suggetor.get_embedding(' '.join(book_info)), voice_ids)
         num_voice_settings = len(list_voices)
         index_voice_settings = random.randint(0, num_voice_settings - 1) 
-
+        
         for id in voice_ids.keys(): 
             if id == list_voices[index_voice_settings]:
                 rem_voice["voice_id"] = list_voices[index_voice_settings]
@@ -102,81 +104,62 @@ def select_settings_by_rulebase(level_rule, data):
     return rem_voice
 
 def main():
-    examples = [
-        {
-            "title": "The Subtle Art of Not Giving a Fuck A Counterintuitive Approach to Living a Good Life _Mark Manson",
-            "genere": "Self-Help",
-            "favor_gender": "male",
-            "favor_age": "middle age",
-            "favor_accent": "bristish",
-            "file_path": "data/The Subtle Art of Not Giving a Fuck A Counterintuitive Approach to Living a Good Life _Mark Manson.txt"
-        },
-        {
-            "title": "The Summer I Turned Pretty",
-            "genere": "Romance",
-            "favor_gender": "female",
-            "favor_age": "young",
-            "favor_accent": "bristish",
-            "file_path": "data/The Summer I Turned Pretty_Jenny Han.txt"
-        },
-        {
-            "title": "Greenlights",
-            "genere": "Autobiography",
-            "favor_gender": "male",
-            "favor_age": "old",
-            "favor_accent": "american",
-            "file_path": "data/Greenlights_Matthew McConaughey.txt"
-        }
-    ]
-    
-    # Select example
-    st.title("Book's metadata")
-    option = st.selectbox(
-            'Select the example:',
-            ('','example1', 'example2', 'example3'))
-    if '1' in option:
-        input = examples[0]
-    elif '2' in option:
-        input = examples[1]
-    elif '3' in option:
-        input = examples[2]
-    else:
-        input = None
-    
-    st.title('system input: ')
-    st.write(input)
+    try:
+        st.title("Voice Settings Recommendation for generating audio")
+        st.markdown('we recommend the voice settings which is suitable for audio book based on its genre, title, etc and listerner favorite voice, gender, accent, etc')
+        st.header(" Book Information")
+        title = st.text_input('Book title', 'Life of Pi')
+        genere = st.text_input('Book genre', 'Adventure')
         
-    level_rule = 2
-    button_generate = st.button("generate voice settings")
-    if button_generate and input != None:
-        rem_voice = select_settings_by_rulebase(level_rule, input)
-        st.title('recommend voice setting: ')
-        st.write(rem_voice)
+        st.header(" User favorite Information")
+        favor_gender  = st.selectbox('Favorite gender', ('male', 'female'))
+        favor_age = st.selectbox('Favorite age', ('young', 'middle age', 'old', 'child'))
+        favor_accent = st.text_input('Favorite accent', 'Bristish')
+
+        text_book = st.text_area('Text to speak', "")
         
-        voice_id = None
-        if rem_voice != None:
-            voice_id = rem_voice['voice_id']
+        if text_book == "":
+            st.warning("Please put text sample in the text area!")
         
-        text_book = read_text_file(input['file_path'])
-        with st.expander("the sample of the book"):
-            st.write(text_book)
-        voice_settings = {
-            "text": text_book,
-            "model_id": "eleven_monolingual_v1",
-            "voice_settings": {
-                "stability": 0.5,
-                "similarity_boost": 0.5,
-                "style": 0.5,
-                "use_speaker_boost": True
+        input = {
+                "title": title,
+                "genere": genere,
+                "favor_gender": favor_gender,
+                "favor_age": favor_age,
+                "favor_accent": favor_accent,
             }
-        }
-        
-        save_path = 'test_audio.wav'
-        with st.spinner("Waiting for the audio book"):
-            ret = generate_speech_11lab(voice_settings, voice_id, save_path)
-            if 'successful' in ret:
-                st.write("The audio generating after suggestion")
-                st.audio(save_path)
-        
+            
+        button_generate = st.button("generate voice settings")
+        if button_generate and input != None:
+            rem_voice = select_settings_by_rulebase(LEVEL_RULE, input)
+            st.title('recommend voice setting: ')
+            st.write(rem_voice)
+            
+            voice_id = None
+            if rem_voice != None:
+                voice_id = rem_voice['voice_id']
+            
+            with st.expander("the sample of the book"):
+                st.write(text_book)
+            voice_settings = {
+                "text": text_book,
+                "model_id": "eleven_monolingual_v1",
+                "voice_settings": {
+                    "stability": 0.5,
+                    "similarity_boost": 0.5,
+                    "style": 0.5,
+                    "use_speaker_boost": True
+                }
+            }
+            
+            save_path = 'test_audio.wav'
+            with st.spinner("Waiting for the audio book"):
+                ret = generate_speech_11lab(voice_settings, voice_id, save_path)
+                if 'successful' in ret:
+                    st.write("The audio generating after suggestion")
+                    st.audio(save_path)
+    except Exception as e:
+        st.error(e)
+            
 if __name__ == '__main__':
     main()

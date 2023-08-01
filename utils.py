@@ -40,7 +40,9 @@ def get_voices():
         print(f"Request failed with status code {response.status_code}.")
         
     voices = response.json()
-    
+    import json
+    with open('data.json', 'w') as f:
+        json.dump(voices, f)
     voices_id = {}
     for voice in voices['voices']:
         name = voice['name']
@@ -61,7 +63,7 @@ def get_voices():
     
         age = labels['age']
         gender = labels['gender']
-        voice_data = name + ' ' + accent + ' ' + description + ' ' + age + ' ' + gender
+        voice_data = name + '. ' + accent + '. ' + description + ' ' + age + '. ' + gender
         voices_id[voice['voice_id']] = {}
         voices_id[voice['voice_id']]['metadata'] = voice_data
 
