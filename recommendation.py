@@ -5,9 +5,6 @@ from utils import get_voices
 import streamlit as st
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
-
-with open('voice_id.json') as f:
-    VOICE_ID_DICT = json.load(f)
     
 with open('rule_base.json') as f:
     RULE_DICT = json.load(f)
